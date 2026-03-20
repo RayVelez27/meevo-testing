@@ -20,7 +20,13 @@ export default function Home() {
     setLoading(true);
     fetch(`${API_BASE}/services`)
       .then((r) => r.json())
-      .then((data) => setServices(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setServices(data);
+        } else {
+          setError(data.error || 'Failed to load services');
+        }
+      })
       .catch(() => setError('Failed to load services'))
       .finally(() => setLoading(false));
   }, []);
