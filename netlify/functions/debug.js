@@ -12,72 +12,90 @@ async function getToken() {
   return res.data.access_token;
 }
 
+async function apiCall(token, method, url, data) {
+  const config = {
+    method,
+    url,
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+  };
+  if (data) config.data = data;
+  const res = await axios(config);
+  return res.data;
+}
+
 exports.handler = async () => {
   try {
     const token = await getToken();
-    const baseUrl = process.env.MEEVO_BASE_URL;
+    const base = process.env.MEEVO_BASE_URL;
 
-    // Get services from location 3
-    const svcRes = await axios.get(`${baseUrl}/v1/services?PageNumber=1&ItemsPerPage=10&TenantId=4&LocationId=3`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    const services = svcRes.data.data || [];
-    if (services.length === 0) {
-      return { statusCode: 200, body: JSON.stringify({ error: 'No services found' }) };
-    }
+    const locations = [
+      { tenantId: 4, locationId: 3 },
+      { tenantId: 4, locationId: 4 },
+      { tenantId: 4, locationId: 5 },
+      { tenantId: 11, locationId: 9 },
+    ];
 
-    const firstService = services[0];
-
-    // Check availability for the next 7 days using the first service
     const results = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+
+    for (const loc of locations) {
+      const locResult = { ...loc, employees: [], services: [], availability: [] };
 
       try {
-        const avRes = await axios({
-          method: 'POST',
-          url: `${baseUrl}/v1/scan/openings?TenantId=4&LocationId=3`,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          data: {
-            StartDate: `${dateStr}T00:00:00`,
-            EndDate: `${dateStr}T23:59:59`,
-            ScanServices: [{ ServiceId: firstService.serviceId }],
-            MaxOpeningsPerDay: 20,
-          },
-        });
+        // Get employees
+        const empRes = await apiCall(token, 'GET', `${base}/v1/employees?PageNumber=1&ItemsPerPage=10&TenantId=${loc.tenantId}&LocationId=${loc.locationId}`);
+        locResult.employees = (empRes.data || []).map(e => ({
+          id: e.employeeId,
+          name: e.displayName || e.firstName + ' ' + e.lastName,
+        }));
 
-        const raw = avRes.data;
-        const slots = raw.data || raw.openings || raw.results || (Array.isArray(raw) ? raw : []);
-        results.push({
-          date: dateStr,
-          dayOfWeek: d.toLocaleDateString('en-US', { weekday: 'long' }),
-          slotsCount: Array.isArray(slots) ? slots.length : 'not array',
-          rawKeys: typeof raw === 'object' && !Array.isArray(raw) ? Object.keys(raw) : 'is array',
-          sample: Array.isArray(slots) ? slots.slice(0, 2) : JSON.stringify(raw).substring(0, 500),
-        });
+        // Get first service
+        const svcRes = await apiCall(token, 'GET', `${base}/v1/services?PageNumber=1&ItemsPerPage=5&TenantId=${loc.tenantId}&LocationId=${loc.locationId}`);
+        const svcs = svcRes.data || [];
+        locResult.services = svcs.map(s => ({ id: s.serviceId, name: s.serviceDisplayName }));
+
+        if (svcs.length > 0) {
+          // Check next Monday-Friday for availability with first service
+          for (let i = 0; i < 14; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() + i);
+            const day = d.getDay();
+            if (day === 0 || day === 6) continue; // skip weekends
+            const dateStr = d.toISOString().split('T')[0];
+
+            try {
+              const avRes = await apiCall(token, 'POST', `${base}/v1/scan/openings?TenantId=${loc.tenantId}&LocationId=${loc.locationId}`, {
+                StartDate: `${dateStr}T00:00:00`,
+                EndDate: `${dateStr}T23:59:59`,
+                ScanServices: [{ ServiceId: svcs[0].serviceId }],
+                MaxOpeningsPerDay: 5,
+              });
+              const slots = avRes.data || [];
+              if (slots.length > 0) {
+                locResult.availability.push({
+                  date: dateStr,
+                  day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                  count: slots.length,
+                  firstSlot: slots[0],
+                });
+              }
+            } catch (err) {
+              // skip
+            }
+          }
+        }
       } catch (err) {
-        results.push({
-          date: dateStr,
-          error: err.response?.data || err.message,
-        });
+        locResult.error = err.response?.data?.error?.message || err.message;
       }
+
+      results.push(locResult);
     }
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        testService: { id: firstService.serviceId, name: firstService.serviceDisplayName },
-        availability: results,
-      }, null, 2),
+      body: JSON.stringify(results, null, 2),
     };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.response?.data || err.message }) };
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
