@@ -1,0 +1,20 @@
+{
+	"geolocation": {
+		"data": {
+			"city": "Kennewick",
+			"country": {
+				"code": "US",
+				"name": "United States"
+			},
+			"subdivision": {
+				"code": "WA",
+				"name": "Washington"
+			},
+			"timezone": "America/Los_Angeles",
+			"latitude": 46.2109,
+			"longitude": -119.168,
+			"postalCode": "99336"
+		},
+		"timestamp": 1774034030875
+	}
+}
