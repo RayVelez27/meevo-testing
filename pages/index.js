@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Head from 'next/head';
 
 const API_BASE = '/.netlify/functions';
 
@@ -96,47 +97,88 @@ export default function Home() {
     setError(null);
   }
 
+  const stepLabels = ['Service', 'Date & Time', 'Your Info', 'Confirmed'];
+
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Book an Appointment</h1>
-        <div style={styles.steps}>
-          {['Service', 'Date & Time', 'Your Info', 'Confirmed'].map((label, i) => (
-            <div
-              key={label}
-              style={{
-                ...styles.stepDot,
-                background: step >= i + 1 ? '#4f46e5' : '#e5e7eb',
-                color: step >= i + 1 ? '#fff' : '#6b7280',
-              }}
-            >
-              {i + 1}
+    <>
+      <Head>
+        <title>Book an Appointment</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </Head>
+
+      <div className="sn-booking-widget">
+        {/* Header */}
+        <div className="sn-header">
+          <span className="sn-header-label">Appointments</span>
+          <h2>Book Your Visit</h2>
+          <p>Select a service, choose your preferred time, and we&rsquo;ll take care of the rest.</p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="sn-steps">
+          {stepLabels.map((label, i) => (
+            <div key={label} className="sn-step-item">
+              <div className={`sn-step-dot ${step >= i + 1 ? 'active' : ''} ${step === i + 1 ? 'current' : ''}`}>
+                {step > i + 1 ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                ) : (
+                  i + 1
+                )}
+              </div>
+              <span className={`sn-step-label ${step >= i + 1 ? 'active' : ''}`}>{label}</span>
+              {i < stepLabels.length - 1 && <div className={`sn-step-line ${step > i + 1 ? 'active' : ''}`} />}
             </div>
           ))}
         </div>
 
-        {error && <div style={styles.error}>{error}</div>}
-        {loading && <div style={styles.loading}>Loading...</div>}
+        {/* Error */}
+        {error && (
+          <div className="sn-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            {error}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="sn-loading">
+            <div className="sn-spinner" />
+            <span>Loading...</span>
+          </div>
+        )}
 
         {/* Step 1: Pick Service */}
         {step === 1 && !loading && (
-          <div>
-            <h2 style={styles.subtitle}>Choose a Service</h2>
-            <div style={styles.list}>
+          <div className="sn-step-content">
+            <div className="sn-filter-row">
+              <span className="sn-filter-label">Services</span>
+              <div className="sn-filter-divider" />
+              <span className="sn-filter-count">{services.length} available</span>
+            </div>
+            <div className="sn-grid">
               {services.map((s) => (
-                <button
+                <div
                   key={s.serviceId}
-                  style={styles.serviceBtn}
+                  className="sn-card"
                   onClick={() => {
                     setSelectedService(s);
                     setStep(2);
                     setError(null);
                   }}
                 >
-                  <strong>{s.name}</strong>
-                  {s.category && <span style={styles.category}>{s.category}</span>}
-                  {s.description && <span style={styles.desc}>{s.description}</span>}
-                </button>
+                  {s.category && <div className="sn-card-category">{s.category}</div>}
+                  <div className="sn-card-name">{s.name}</div>
+                  {s.description && <div className="sn-card-desc">{s.description}</div>}
+                  <div className="sn-card-footer">
+                    <span />
+                    <button className="sn-card-book">
+                      Select
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -144,52 +186,55 @@ export default function Home() {
 
         {/* Step 2: Pick Date & Time */}
         {step === 2 && (
-          <div>
-            <h2 style={styles.subtitle}>
-              Pick a Date & Time
-              <span style={styles.selectedLabel}>{selectedService?.name}</span>
-            </h2>
-            <button style={styles.backBtn} onClick={() => setStep(1)}>
-              &larr; Back
+          <div className="sn-step-content">
+            <button className="sn-back-btn" onClick={() => setStep(1)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back to services
             </button>
-            <input
-              type="date"
-              min={today}
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                fetchSlots(selectedService.serviceId, e.target.value);
-              }}
-              style={styles.dateInput}
-            />
+            <div className="sn-selected-service">
+              <span className="sn-header-label">Selected</span>
+              <h3>{selectedService?.name}</h3>
+            </div>
+            <div className="sn-date-section">
+              <label className="sn-filter-label">Choose a Date</label>
+              <input
+                type="date"
+                min={today}
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  fetchSlots(selectedService.serviceId, e.target.value);
+                }}
+                className="sn-date-input"
+              />
+            </div>
             {!loading && slots.length > 0 && (
-              <div style={styles.slotGrid}>
-                {slots.map((slot, i) => (
-                  <button
-                    key={i}
-                    style={{
-                      ...styles.slotBtn,
-                      ...(selectedSlot === slot ? styles.slotBtnSelected : {}),
-                    }}
-                    onClick={() => setSelectedSlot(slot)}
-                  >
-                    {formatTime(slot.startTime)}
-                    {slot.employeeName && (
-                      <span style={styles.empName}>{slot.employeeName}</span>
-                    )}
-                  </button>
-                ))}
+              <div>
+                <div className="sn-filter-row">
+                  <span className="sn-filter-label">Available Times</span>
+                  <div className="sn-filter-divider" />
+                  <span className="sn-filter-count">{slots.length} slots</span>
+                </div>
+                <div className="sn-slot-grid">
+                  {slots.map((slot, i) => (
+                    <button
+                      key={i}
+                      className={`sn-slot-btn ${selectedSlot === slot ? 'active' : ''}`}
+                      onClick={() => setSelectedSlot(slot)}
+                    >
+                      {formatTime(slot.startTime)}
+                      {slot.employeeName && (
+                        <span className="sn-slot-emp">{slot.employeeName}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {selectedSlot && (
-              <button
-                style={styles.primaryBtn}
-                onClick={() => {
-                  setStep(3);
-                  setError(null);
-                }}
-              >
+              <button className="sn-primary-btn" onClick={() => { setStep(3); setError(null); }}>
                 Continue
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             )}
           </div>
@@ -197,49 +242,61 @@ export default function Home() {
 
         {/* Step 3: Client Info */}
         {step === 3 && (
-          <div>
-            <h2 style={styles.subtitle}>Your Information</h2>
-            <button style={styles.backBtn} onClick={() => setStep(2)}>
-              &larr; Back
+          <div className="sn-step-content">
+            <button className="sn-back-btn" onClick={() => setStep(2)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back
             </button>
-            <div style={styles.formGrid}>
-              <input
-                placeholder="First Name"
-                value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                style={styles.input}
-              />
-              <input
-                placeholder="Last Name"
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                style={styles.input}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                style={styles.input}
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                style={styles.input}
-              />
+            <div className="sn-filter-row">
+              <span className="sn-filter-label">Your Information</span>
+              <div className="sn-filter-divider" />
             </div>
-            <div style={styles.summary}>
-              <p><strong>Service:</strong> {selectedService?.name}</p>
-              <p><strong>Date:</strong> {date}</p>
-              <p><strong>Time:</strong> {formatTime(selectedSlot?.startTime)}</p>
+            <div className="sn-form-grid">
+              <div className="sn-input-group">
+                <label className="sn-input-label">First Name</label>
+                <input
+                  value={form.firstName}
+                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                  className="sn-input"
+                />
+              </div>
+              <div className="sn-input-group">
+                <label className="sn-input-label">Last Name</label>
+                <input
+                  value={form.lastName}
+                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                  className="sn-input"
+                />
+              </div>
+              <div className="sn-input-group">
+                <label className="sn-input-label">Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="sn-input"
+                />
+              </div>
+              <div className="sn-input-group">
+                <label className="sn-input-label">Phone</label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="sn-input"
+                />
+              </div>
+            </div>
+            <div className="sn-summary">
+              <div className="sn-summary-row"><span>Service</span><strong>{selectedService?.name}</strong></div>
+              <div className="sn-summary-row"><span>Date</span><strong>{date}</strong></div>
+              <div className="sn-summary-row"><span>Time</span><strong>{formatTime(selectedSlot?.startTime)}</strong></div>
               {selectedSlot?.employeeName && (
-                <p><strong>With:</strong> {selectedSlot.employeeName}</p>
+                <div className="sn-summary-row"><span>With</span><strong>{selectedSlot.employeeName}</strong></div>
               )}
             </div>
             <button
-              style={styles.primaryBtn}
+              className="sn-primary-btn"
               disabled={!form.firstName || !form.lastName || !form.email || !form.phone || loading}
               onClick={handleBook}
             >
@@ -250,216 +307,577 @@ export default function Home() {
 
         {/* Step 4: Confirmation */}
         {step === 4 && booking && (
-          <div style={styles.confirmation}>
-            <div style={styles.checkmark}>&#10003;</div>
-            <h2 style={styles.subtitle}>Appointment Confirmed!</h2>
-            <div style={styles.summary}>
-              <p><strong>Service:</strong> {selectedService?.name}</p>
-              <p><strong>Date:</strong> {date}</p>
-              <p><strong>Time:</strong> {formatTime(selectedSlot?.startTime)}</p>
-              {selectedSlot?.employeeName && (
-                <p><strong>With:</strong> {selectedSlot.employeeName}</p>
-              )}
-              <p><strong>Name:</strong> {form.firstName} {form.lastName}</p>
-              <p><strong>Email:</strong> {form.email}</p>
+          <div className="sn-step-content sn-confirmation">
+            <div className="sn-check-circle">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             </div>
-            <button style={styles.primaryBtn} onClick={reset}>
-              Book Another
+            <h2>Appointment Confirmed</h2>
+            <p className="sn-confirm-sub">You&rsquo;re all set. We look forward to seeing you.</p>
+            <div className="sn-summary">
+              <div className="sn-summary-row"><span>Service</span><strong>{selectedService?.name}</strong></div>
+              <div className="sn-summary-row"><span>Date</span><strong>{date}</strong></div>
+              <div className="sn-summary-row"><span>Time</span><strong>{formatTime(selectedSlot?.startTime)}</strong></div>
+              {selectedSlot?.employeeName && (
+                <div className="sn-summary-row"><span>With</span><strong>{selectedSlot.employeeName}</strong></div>
+              )}
+              <div className="sn-summary-row"><span>Name</span><strong>{form.firstName} {form.lastName}</strong></div>
+              <div className="sn-summary-row"><span>Email</span><strong>{form.email}</strong></div>
+            </div>
+            <button className="sn-primary-btn sn-outline-btn" onClick={reset}>
+              Book Another Appointment
             </button>
           </div>
         )}
       </div>
-    </div>
+
+      <style jsx global>{`
+        :root {
+          --color-bg: #FFFFFF;
+          --color-surface: #FFFFFF;
+          --color-text: #1a1a1a;
+          --color-text-muted: #6b7280;
+          --color-accent: #2b5144;
+          --color-accent-hover: #1e3a30;
+          --color-accent-light: #eef4f1;
+          --color-border: #e5e7eb;
+          --color-tag-bg: #f3f4f6;
+          --color-tag-active-bg: #2b5144;
+          --color-tag-active-text: #FFFFFF;
+          --font-display: 'Inter', system-ui, sans-serif;
+          --font-body: 'Inter', system-ui, sans-serif;
+          --radius-sm: 6px;
+          --radius-md: 12px;
+          --radius-lg: 20px;
+          --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(43,81,68,0.05);
+          --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.06), 0 12px 32px rgba(43,81,68,0.1);
+          --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--color-bg); }
+
+        .sn-booking-widget {
+          font-family: var(--font-body);
+          color: var(--color-text);
+          background: var(--color-bg);
+          padding: 48px 24px 64px;
+          min-height: 100vh;
+          max-width: 1200px;
+          margin: 0 auto;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        .sn-header {
+          text-align: center;
+          max-width: 640px;
+          margin: 0 auto 48px;
+          animation: snFadeUp 0.6s ease both;
+        }
+        .sn-header-label {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          color: var(--color-accent);
+          margin-bottom: 16px;
+          display: block;
+        }
+        .sn-header h2 {
+          font-family: var(--font-display);
+          font-size: clamp(36px, 5vw, 56px);
+          font-weight: 300;
+          line-height: 1.1;
+          color: var(--color-text);
+          margin-bottom: 16px;
+          letter-spacing: -0.5px;
+        }
+        .sn-header p {
+          font-size: 15px;
+          font-weight: 300;
+          line-height: 1.7;
+          color: var(--color-text-muted);
+          max-width: 480px;
+          margin: 0 auto;
+        }
+
+        /* Progress Steps */
+        .sn-steps {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0;
+          margin-bottom: 48px;
+          animation: snFadeUp 0.6s 0.1s ease both;
+        }
+        .sn-step-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sn-step-dot {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 600;
+          background: var(--color-tag-bg);
+          color: var(--color-text-muted);
+          transition: all var(--transition);
+          flex-shrink: 0;
+        }
+        .sn-step-dot.active {
+          background: var(--color-tag-active-bg);
+          color: var(--color-tag-active-text);
+        }
+        .sn-step-dot.current {
+          box-shadow: 0 0 0 4px var(--color-accent-light);
+        }
+        .sn-step-label {
+          font-size: 13px;
+          font-weight: 400;
+          color: var(--color-text-muted);
+          white-space: nowrap;
+          transition: color var(--transition);
+        }
+        .sn-step-label.active {
+          color: var(--color-text);
+          font-weight: 500;
+        }
+        .sn-step-line {
+          width: 32px;
+          height: 2px;
+          background: var(--color-border);
+          margin: 0 8px;
+          transition: background var(--transition);
+          flex-shrink: 0;
+        }
+        .sn-step-line.active {
+          background: var(--color-accent);
+        }
+        @media (max-width: 600px) {
+          .sn-step-label { display: none; }
+          .sn-step-line { width: 24px; }
+        }
+
+        /* Error */
+        .sn-error {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #fef2f2;
+          color: #dc2626;
+          padding: 14px 18px;
+          border-radius: var(--radius-md);
+          margin-bottom: 24px;
+          font-size: 14px;
+          font-weight: 400;
+          max-width: 700px;
+          margin-left: auto;
+          margin-right: auto;
+          animation: snFadeUp 0.3s ease both;
+        }
+
+        /* Loading */
+        .sn-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          padding: 48px;
+          color: var(--color-text-muted);
+          font-size: 14px;
+        }
+        .sn-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid var(--color-border);
+          border-top-color: var(--color-accent);
+          border-radius: 50%;
+          animation: snSpin 0.8s linear infinite;
+        }
+        @keyframes snSpin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Step Content */
+        .sn-step-content {
+          animation: snFadeUp 0.5s ease both;
+        }
+
+        /* Filter Row */
+        .sn-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .sn-filter-label {
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: var(--color-text-muted);
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .sn-filter-divider {
+          flex: 1;
+          height: 1px;
+          background: var(--color-border);
+        }
+        .sn-filter-count {
+          font-size: 13px;
+          font-weight: 400;
+          color: var(--color-text-muted);
+          white-space: nowrap;
+        }
+
+        /* Service Cards Grid */
+        .sn-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 24px;
+        }
+        @media (max-width: 420px) {
+          .sn-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Card */
+        .sn-card {
+          background: var(--color-surface);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-card);
+          padding: 28px 28px 24px;
+          display: flex;
+          flex-direction: column;
+          transition: all var(--transition);
+          position: relative;
+          overflow: hidden;
+          cursor: pointer;
+          animation: snFadeUp 0.5s ease both;
+        }
+        .sn-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, var(--color-accent), transparent);
+          opacity: 0;
+          transition: opacity var(--transition);
+        }
+        .sn-card:hover {
+          box-shadow: var(--shadow-card-hover);
+          border-color: rgba(43,81,68,0.3);
+          transform: translateY(-2px);
+        }
+        .sn-card:hover::before { opacity: 1; }
+        .sn-card-category {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: var(--color-accent);
+          background: var(--color-accent-light);
+          padding: 4px 12px;
+          border-radius: 100px;
+          white-space: nowrap;
+          align-self: flex-start;
+          margin-bottom: 12px;
+        }
+        .sn-card-name {
+          font-family: var(--font-display);
+          font-size: 22px;
+          font-weight: 500;
+          line-height: 1.25;
+          color: var(--color-text);
+          margin-bottom: 10px;
+          letter-spacing: -0.2px;
+        }
+        .sn-card-desc {
+          font-size: 13.5px;
+          font-weight: 300;
+          line-height: 1.65;
+          color: var(--color-text-muted);
+          margin-bottom: 18px;
+          flex: 1;
+        }
+        .sn-card-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 18px;
+          border-top: 1px solid var(--color-border);
+        }
+        .sn-card-book {
+          font-family: var(--font-body);
+          font-size: 13px;
+          font-weight: 500;
+          padding: 10px 24px;
+          border-radius: 100px;
+          border: none;
+          background: var(--color-tag-active-bg);
+          color: var(--color-tag-active-text);
+          cursor: pointer;
+          transition: all var(--transition);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          letter-spacing: 0.3px;
+        }
+        .sn-card-book:hover {
+          background: var(--color-accent-hover);
+          transform: scale(1.03);
+        }
+        .sn-card-book:hover svg { transform: translateX(2px); }
+        .sn-card-book svg { transition: transform var(--transition); }
+
+        /* Back Button */
+        .sn-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: none;
+          border: none;
+          color: var(--color-accent);
+          cursor: pointer;
+          font-family: var(--font-body);
+          font-size: 14px;
+          font-weight: 500;
+          padding: 0 0 24px;
+          transition: color var(--transition);
+        }
+        .sn-back-btn:hover { color: var(--color-accent-hover); }
+
+        /* Selected Service Banner */
+        .sn-selected-service {
+          background: var(--color-accent-light);
+          border-radius: var(--radius-md);
+          padding: 20px 24px;
+          margin-bottom: 32px;
+        }
+        .sn-selected-service .sn-header-label { margin-bottom: 6px; }
+        .sn-selected-service h3 {
+          font-family: var(--font-display);
+          font-size: 24px;
+          font-weight: 500;
+          color: var(--color-text);
+          letter-spacing: -0.3px;
+        }
+
+        /* Date Input */
+        .sn-date-section {
+          margin-bottom: 32px;
+        }
+        .sn-date-section .sn-filter-label {
+          display: block;
+          margin-bottom: 10px;
+        }
+        .sn-date-input {
+          width: 100%;
+          max-width: 300px;
+          padding: 12px 16px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          font-family: var(--font-body);
+          font-size: 15px;
+          color: var(--color-text);
+          background: var(--color-surface);
+          outline: none;
+          transition: border-color var(--transition);
+        }
+        .sn-date-input:focus {
+          border-color: var(--color-accent);
+        }
+
+        /* Time Slots */
+        .sn-slot-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+          gap: 10px;
+          margin-bottom: 32px;
+        }
+        .sn-slot-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 12px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          cursor: pointer;
+          font-family: var(--font-body);
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--color-text);
+          transition: all var(--transition);
+        }
+        .sn-slot-btn:hover {
+          border-color: var(--color-accent);
+          background: var(--color-accent-light);
+        }
+        .sn-slot-btn.active {
+          border-color: var(--color-accent);
+          background: var(--color-tag-active-bg);
+          color: var(--color-tag-active-text);
+        }
+        .sn-slot-emp {
+          font-size: 11px;
+          font-weight: 400;
+          color: var(--color-text-muted);
+          margin-top: 3px;
+        }
+        .sn-slot-btn.active .sn-slot-emp {
+          color: rgba(255,255,255,0.7);
+        }
+
+        /* Form */
+        .sn-form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+        @media (max-width: 500px) {
+          .sn-form-grid { grid-template-columns: 1fr; }
+        }
+        .sn-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .sn-input-label {
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: var(--color-text-muted);
+        }
+        .sn-input {
+          padding: 12px 16px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          font-family: var(--font-body);
+          font-size: 15px;
+          color: var(--color-text);
+          outline: none;
+          transition: border-color var(--transition);
+        }
+        .sn-input:focus {
+          border-color: var(--color-accent);
+        }
+
+        /* Summary */
+        .sn-summary {
+          background: var(--color-accent-light);
+          border-radius: var(--radius-md);
+          padding: 20px 24px;
+          margin-bottom: 24px;
+        }
+        .sn-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(43,81,68,0.1);
+        }
+        .sn-summary-row:last-child { border-bottom: none; }
+        .sn-summary-row span {
+          font-size: 13px;
+          color: var(--color-text-muted);
+        }
+        .sn-summary-row strong {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--color-text);
+        }
+
+        /* Primary Button */
+        .sn-primary-btn {
+          width: 100%;
+          max-width: 400px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: 0 auto;
+          padding: 14px 32px;
+          background: var(--color-tag-active-bg);
+          color: var(--color-tag-active-text);
+          border: none;
+          border-radius: 100px;
+          font-family: var(--font-body);
+          font-size: 15px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all var(--transition);
+          letter-spacing: 0.3px;
+        }
+        .sn-primary-btn:hover {
+          background: var(--color-accent-hover);
+          transform: scale(1.02);
+        }
+        .sn-primary-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+        .sn-primary-btn svg { transition: transform var(--transition); }
+        .sn-primary-btn:hover svg { transform: translateX(2px); }
+
+        /* Outline variant */
+        .sn-outline-btn {
+          background: transparent;
+          color: var(--color-accent);
+          border: 1px solid var(--color-border);
+        }
+        .sn-outline-btn:hover {
+          background: var(--color-accent-light);
+          border-color: var(--color-accent);
+        }
+
+        /* Confirmation */
+        .sn-confirmation {
+          text-align: center;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        .sn-check-circle {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: var(--color-accent);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 24px;
+          animation: snFadeUp 0.5s ease both;
+        }
+        .sn-confirmation h2 {
+          font-family: var(--font-display);
+          font-size: 28px;
+          font-weight: 400;
+          color: var(--color-text);
+          margin-bottom: 8px;
+          letter-spacing: -0.3px;
+        }
+        .sn-confirm-sub {
+          font-size: 15px;
+          color: var(--color-text-muted);
+          margin-bottom: 32px;
+          font-weight: 300;
+        }
+
+        @keyframes snFadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f3f4f6',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    padding: '40px 16px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  card: {
-    background: '#fff',
-    borderRadius: '12px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-    padding: '32px',
-    maxWidth: '600px',
-    width: '100%',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: 700,
-    textAlign: 'center',
-    margin: '0 0 20px',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: '18px',
-    fontWeight: 600,
-    margin: '0 0 16px',
-    color: '#111827',
-  },
-  steps: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '12px',
-    marginBottom: '24px',
-  },
-  stepDot: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '14px',
-    fontWeight: 600,
-    transition: 'all 0.2s',
-  },
-  error: {
-    background: '#fef2f2',
-    color: '#dc2626',
-    padding: '12px',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    fontSize: '14px',
-  },
-  loading: {
-    textAlign: 'center',
-    color: '#6b7280',
-    padding: '20px',
-  },
-  list: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  serviceBtn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: '4px',
-    padding: '14px 16px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    background: '#fff',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'border-color 0.15s',
-    fontSize: '15px',
-  },
-  category: {
-    fontSize: '12px',
-    color: '#4f46e5',
-    fontWeight: 500,
-  },
-  desc: {
-    fontSize: '13px',
-    color: '#6b7280',
-    lineHeight: 1.4,
-  },
-  selectedLabel: {
-    fontSize: '14px',
-    fontWeight: 400,
-    color: '#4f46e5',
-    marginLeft: '8px',
-  },
-  backBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#4f46e5',
-    cursor: 'pointer',
-    fontSize: '14px',
-    padding: '0 0 12px',
-  },
-  dateInput: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '15px',
-    marginBottom: '16px',
-    boxSizing: 'border-box',
-  },
-  slotGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-    gap: '8px',
-    marginBottom: '16px',
-  },
-  slotBtn: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '10px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 500,
-    transition: 'all 0.15s',
-  },
-  slotBtnSelected: {
-    borderColor: '#4f46e5',
-    background: '#eef2ff',
-    color: '#4f46e5',
-  },
-  empName: {
-    fontSize: '11px',
-    color: '#6b7280',
-    marginTop: '2px',
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
-    marginBottom: '16px',
-  },
-  input: {
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '15px',
-    outline: 'none',
-  },
-  summary: {
-    background: '#f9fafb',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    fontSize: '14px',
-    lineHeight: 1.8,
-  },
-  primaryBtn: {
-    width: '100%',
-    padding: '12px',
-    background: '#4f46e5',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  confirmation: {
-    textAlign: 'center',
-  },
-  checkmark: {
-    width: '64px',
-    height: '64px',
-    borderRadius: '50%',
-    background: '#10b981',
-    color: '#fff',
-    fontSize: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 16px',
-  },
-};
