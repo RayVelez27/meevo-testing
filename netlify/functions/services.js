@@ -28,43 +28,58 @@ exports.handler = async (event) => {
 
   try {
     const token = await getFreshToken();
-    const tenantId = process.env.MEEVO_TENANT_ID;
-    const locationId = process.env.MEEVO_LOCATION_ID;
-    const url = `${process.env.MEEVO_BASE_URL}/v1/services?PageNumber=1&ItemsPerPage=100&TenantId=${tenantId}&LocationId=${locationId}`;
 
-    console.log('Services URL:', url);
+    // Try all known locations and merge services
+    const locations = [
+      { tenantId: 4, locationId: 3 },
+      { tenantId: 4, locationId: 4 },
+      { tenantId: 4, locationId: 5 },
+      { tenantId: 11, locationId: 9 },
+    ];
 
-    const res = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
+    const allServices = [];
+    const seenIds = new Set();
 
-    console.log('Raw response:', JSON.stringify(res.data).substring(0, 2000));
+    for (const loc of locations) {
+      try {
+        const url = `${process.env.MEEVO_BASE_URL}/v1/services?PageNumber=1&ItemsPerPage=100&TenantId=${loc.tenantId}&LocationId=${loc.locationId}`;
+        console.log('Fetching:', url);
 
-    const items = Array.isArray(res.data) ? res.data : (res.data.data || []);
-    console.log('Items count:', items.length);
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        });
 
-    const services = items
-      .filter((s) => s.allowBookOnline !== false)
-      .map((s) => ({
-        serviceId: s.serviceId,
-        name: s.serviceDisplayName || s.displayName || s.name,
-        description: s.shortDesc || s.longDesc || '',
-        category: s.serviceCategoryDisplayName || '',
-      }));
+        console.log(`Location ${loc.tenantId}/${loc.locationId}: ${(res.data.data || []).length} services`);
 
-    console.log('Final services count:', services.length);
+        for (const s of (res.data.data || [])) {
+          if (!seenIds.has(s.serviceId)) {
+            seenIds.add(s.serviceId);
+            allServices.push({
+              serviceId: s.serviceId,
+              name: s.serviceDisplayName || s.displayName || s.name,
+              description: s.shortDesc || s.longDesc || '',
+              category: s.serviceCategoryDisplayName || '',
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`Location ${loc.tenantId}/${loc.locationId} error:`, err.response?.data?.error?.message || err.message);
+      }
+    }
+
+    console.log('Total unique services:', allServices.length);
 
     return {
       statusCode: 200,
       headers: corsHeaders(),
-      body: JSON.stringify(services),
+      body: JSON.stringify(allServices),
     };
   } catch (err) {
     console.error('services error:', err.response?.status, err.response?.data || err.message);
     return {
       statusCode: 500,
       headers: corsHeaders(),
-      body: JSON.stringify({ error: err.response?.data?.error?.message || err.message }),
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
