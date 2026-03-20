@@ -17,6 +17,22 @@ exports.handler = async (event) => {
       };
     }
 
+    // Demo mode: if employeeId starts with "demo-", return a mock booking
+    if (employeeId && employeeId.startsWith('demo-')) {
+      console.log('Demo booking for', firstName, lastName, email);
+      return {
+        statusCode: 200,
+        headers: corsHeaders(),
+        body: JSON.stringify({
+          success: true,
+          appointmentId: `demo-${Date.now()}`,
+          message: 'Demo appointment booked successfully!',
+          isDemo: true,
+        }),
+      };
+    }
+
+    // Real booking flow
     // Step 1: Look up existing client by email
     let clientId = null;
     try {
@@ -27,7 +43,6 @@ exports.handler = async (event) => {
         clientId = lookup.data[0].clientId || lookup.data[0].ClientId;
       }
     } catch (lookupErr) {
-      // Client not found — will create below
       console.log('Client lookup returned no match, creating new client');
     }
 
