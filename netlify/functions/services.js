@@ -7,11 +7,15 @@ exports.handler = async (event) => {
 
   try {
     const result = await meevoApi('GET', '/v1/services?PageNumber=1&ItemsPerPage=100');
-    const services = (result.data || [])
+    console.log('Meevo services raw response:', JSON.stringify(result).substring(0, 2000));
+
+    // The response might be the array directly, or nested under .data, .items, .results, etc.
+    const items = Array.isArray(result) ? result : (result.data || result.items || result.results || []);
+    const services = items
       .filter((s) => s.allowBookOnline !== false)
       .map((s) => ({
         serviceId: s.serviceId,
-        name: s.serviceDisplayName || s.displayName,
+        name: s.serviceDisplayName || s.displayName || s.name,
         description: s.shortDesc || s.longDesc || '',
         category: s.serviceCategoryDisplayName || '',
       }));
