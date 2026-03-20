@@ -1,4 +1,25 @@
-const { meevoApi, corsHeaders } = require('./meevoAuth');
+const axios = require('axios');
+const { corsHeaders } = require('./meevoAuth');
+
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getFreshToken() {
+  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
+
+  const params = new URLSearchParams();
+  params.append('client_id', process.env.MEEVO_APP_ID);
+  params.append('client_secret', process.env.MEEVO_APP_SECRET);
+  params.append('grant_type', 'client_credentials');
+
+  const res = await axios.post(process.env.MEEVO_AUTH_URL, params.toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+  });
+
+  cachedToken = res.data.access_token;
+  tokenExpiry = Date.now() + (res.data.expires_in - 60) * 1000;
+  return cachedToken;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -6,27 +27,21 @@ exports.handler = async (event) => {
   }
 
   try {
-    console.log('ENV check:', {
-      hasAppId: !!process.env.MEEVO_APP_ID,
-      hasAppSecret: !!process.env.MEEVO_APP_SECRET,
-      authUrl: process.env.MEEVO_AUTH_URL,
-      baseUrl: process.env.MEEVO_BASE_URL,
-      tenantId: process.env.MEEVO_TENANT_ID,
-      locationId: process.env.MEEVO_LOCATION_ID,
+    const token = await getFreshToken();
+    const tenantId = process.env.MEEVO_TENANT_ID;
+    const locationId = process.env.MEEVO_LOCATION_ID;
+    const url = `${process.env.MEEVO_BASE_URL}/v1/services?PageNumber=1&ItemsPerPage=100&TenantId=${tenantId}&LocationId=${locationId}`;
+
+    console.log('Services URL:', url);
+
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });
 
-    const result = await meevoApi('GET', '/v1/services?PageNumber=1&ItemsPerPage=100');
-    console.log('Raw response type:', typeof result);
-    console.log('Raw response keys:', result ? Object.keys(result) : 'null/undefined');
-    console.log('Raw response:', JSON.stringify(result).substring(0, 3000));
+    console.log('Raw response:', JSON.stringify(res.data).substring(0, 2000));
 
-    const items = Array.isArray(result) ? result : (result.data || result.items || result.results || []);
-    console.log('Items type:', typeof items, 'isArray:', Array.isArray(items), 'length:', items.length);
-
-    if (items.length > 0) {
-      console.log('First item keys:', Object.keys(items[0]));
-      console.log('First item:', JSON.stringify(items[0]).substring(0, 500));
-    }
+    const items = Array.isArray(res.data) ? res.data : (res.data.data || []);
+    console.log('Items count:', items.length);
 
     const services = items
       .filter((s) => s.allowBookOnline !== false)
@@ -38,9 +53,6 @@ exports.handler = async (event) => {
       }));
 
     console.log('Final services count:', services.length);
-    if (services.length > 0) {
-      console.log('First service:', JSON.stringify(services[0]));
-    }
 
     return {
       statusCode: 200,
@@ -49,11 +61,10 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     console.error('services error:', err.response?.status, err.response?.data || err.message);
-    console.error('Full error:', err.stack);
     return {
       statusCode: 500,
       headers: corsHeaders(),
-      body: JSON.stringify({ error: err.response?.data?.error?.message || err.message || 'Failed to fetch services' }),
+      body: JSON.stringify({ error: err.response?.data?.error?.message || err.message }),
     };
   }
 };

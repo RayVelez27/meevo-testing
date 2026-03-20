@@ -31,6 +31,8 @@ async function meevoApi(method, path, data) {
   const separator = path.includes('?') ? '&' : '?';
   const url = `${process.env.MEEVO_BASE_URL}${path}${separator}TenantId=${process.env.MEEVO_TENANT_ID}&LocationId=${process.env.MEEVO_LOCATION_ID}`;
 
+  console.log('meevoApi calling:', method, url);
+
   const config = {
     method,
     url,
@@ -46,6 +48,7 @@ async function meevoApi(method, path, data) {
   }
 
   const res = await axios(config);
+  console.log('meevoApi response status:', res.status);
   return res.data;
 }
 
