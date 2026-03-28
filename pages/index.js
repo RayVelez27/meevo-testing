@@ -6,6 +6,7 @@ const API_BASE = '/.netlify/functions';
 export default function Home() {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [date, setDate] = useState('');
   const [slots, setSlots] = useState([]);
@@ -86,8 +87,14 @@ export default function Home() {
     }
   }
 
+  const categories = [...new Set(services.map((s) => s.category || 'Other'))];
+  const filteredServices = selectedCategory
+    ? services.filter((s) => (s.category || 'Other') === selectedCategory)
+    : [];
+
   function reset() {
     setStep(1);
+    setSelectedCategory(null);
     setSelectedService(null);
     setDate('');
     setSlots([]);
@@ -149,16 +156,52 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 1: Pick Service */}
-        {step === 1 && !loading && (
+        {/* Step 1: Pick Category, then Service */}
+        {step === 1 && !loading && !selectedCategory && (
           <div className="sn-step-content">
             <div className="sn-filter-row">
-              <span className="sn-filter-label">Services</span>
+              <span className="sn-filter-label">Categories</span>
               <div className="sn-filter-divider" />
-              <span className="sn-filter-count">{services.length} available</span>
+              <span className="sn-filter-count">{categories.length} categories</span>
             </div>
             <div className="sn-grid">
-              {services.map((s) => (
+              {categories.map((cat) => {
+                const count = services.filter((s) => (s.category || 'Other') === cat).length;
+                return (
+                  <div
+                    key={cat}
+                    className="sn-card sn-category-card"
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    <div className="sn-card-name">{cat}</div>
+                    <div className="sn-card-desc">{count} service{count !== 1 ? 's' : ''}</div>
+                    <div className="sn-card-footer">
+                      <span />
+                      <button className="sn-card-book">
+                        View
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {step === 1 && !loading && selectedCategory && (
+          <div className="sn-step-content">
+            <button className="sn-back-btn" onClick={() => setSelectedCategory(null)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              All categories
+            </button>
+            <div className="sn-filter-row">
+              <span className="sn-filter-label">{selectedCategory}</span>
+              <div className="sn-filter-divider" />
+              <span className="sn-filter-count">{filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="sn-grid">
+              {filteredServices.map((s) => (
                 <div
                   key={s.serviceId}
                   className="sn-card"
@@ -168,7 +211,6 @@ export default function Home() {
                     setError(null);
                   }}
                 >
-                  {s.category && <div className="sn-card-category">{s.category}</div>}
                   <div className="sn-card-name">{s.name}</div>
                   {s.description && <div className="sn-card-desc">{s.description}</div>}
                   <div className="sn-card-footer">
@@ -187,7 +229,7 @@ export default function Home() {
         {/* Step 2: Pick Date & Time */}
         {step === 2 && (
           <div className="sn-step-content">
-            <button className="sn-back-btn" onClick={() => setStep(1)}>
+            <button className="sn-back-btn" onClick={() => { setStep(1); setSelectedCategory(selectedService?.category || null); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               Back to services
             </button>
