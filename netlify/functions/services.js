@@ -6,9 +6,17 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await meevoApi('GET', '/v1/services?PageNumber=1&ItemsPerPage=50');
+    let items = [];
+    let page = 1;
+    const perPage = 50;
 
-    const items = result.data || [];
+    while (true) {
+      const result = await meevoApi('GET', `/v1/services?PageNumber=${page}&ItemsPerPage=${perPage}`);
+      const data = result.data || [];
+      items = items.concat(data);
+      if (data.length < perPage) break;
+      page++;
+    }
     const services = items.map((s) => ({
       serviceId: s.serviceId,
       name: s.serviceDisplayName || s.displayName,

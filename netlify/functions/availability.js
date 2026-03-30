@@ -15,14 +15,25 @@ exports.handler = async (event) => {
       };
     }
 
-    const result = await meevoApi('POST', '/v1/scan/openings', {
+    const payload = {
       StartDate: `${date}T00:00:00`,
       EndDate: `${date}T23:59:59`,
       ScanServices: [{ ServiceId: serviceId }],
       MaxOpeningsPerDay: 20,
-    });
+    };
+    console.log('Availability request:', JSON.stringify(payload));
 
-    const slots = (result.data || []).map((slot) => ({
+    const result = await meevoApi('POST', '/v1/scan/openings', payload);
+    console.log('Availability raw response:', JSON.stringify(result).substring(0, 2000));
+
+    const rawSlots = result.data || result.Data || result || [];
+    const slotsArray = Array.isArray(rawSlots) ? rawSlots : [];
+    console.log('Slots array length:', slotsArray.length);
+    if (slotsArray.length > 0) {
+      console.log('First slot keys:', Object.keys(slotsArray[0]));
+    }
+
+    const slots = slotsArray.map((slot) => ({
       startTime: slot.startTime || slot.StartTime,
       endTime: slot.endTime || slot.EndTime,
       employeeId: slot.employeeId || slot.EmployeeId,

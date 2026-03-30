@@ -1,7 +1,7 @@
 {
 	"geolocation": {
 		"data": {
-			"city": "Kennewick",
+			"city": "Pasco",
 			"country": {
 				"code": "US",
 				"name": "United States"
@@ -11,10 +11,10 @@
 				"name": "Washington"
 			},
 			"timezone": "America/Los_Angeles",
-			"latitude": 46.2109,
-			"longitude": -119.168,
-			"postalCode": "99336"
+			"latitude": 46.2515,
+			"longitude": -119.1034,
+			"postalCode": "99301"
 		},
-		"timestamp": 1774034030875
+		"timestamp": 1774735642404
 	}
 }
