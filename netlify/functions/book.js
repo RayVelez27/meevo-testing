@@ -23,8 +23,9 @@ exports.handler = async (event) => {
       const lookup = await meevoApi('POST', '/v1/clients/lookup', {
         EmailIds: [email],
       });
-      if (lookup.data && lookup.data.length > 0) {
-        clientId = lookup.data[0].clientId || lookup.data[0].ClientId;
+      const lookupData = lookup.Data || lookup.data;
+      if (lookupData && lookupData.length > 0) {
+        clientId = lookupData[0].clientId || lookupData[0].ClientId;
       }
     } catch (lookupErr) {
       console.log('Client lookup returned no match, creating new client');
@@ -45,8 +46,8 @@ exports.handler = async (event) => {
           },
         ],
       });
-      clientId =
-        newClient.data?.clientId || newClient.data?.ClientId || newClient.data?.Id;
+      const clientData = newClient.Data || newClient.data;
+      clientId = clientData?.clientId || clientData?.ClientId || clientData?.Id;
     }
 
     if (!clientId) {
@@ -68,15 +69,16 @@ exports.handler = async (event) => {
     }
 
     const booking = await meevoApi('POST', '/v1/book/service', bookingPayload);
+    const bookingData = booking.Data || booking.data || booking;
 
     return {
       statusCode: 200,
       headers: corsHeaders(),
       body: JSON.stringify({
         success: true,
-        appointmentId: booking.data?.appointmentId || booking.data?.AppointmentId,
+        appointmentId: bookingData?.appointmentId || bookingData?.AppointmentId,
         appointmentServiceId:
-          booking.data?.appointmentServiceId || booking.data?.AppointmentServiceId,
+          bookingData?.appointmentServiceId || bookingData?.AppointmentServiceId,
         message: 'Appointment booked successfully!',
       }),
     };
